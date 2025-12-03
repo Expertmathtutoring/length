@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Length Mastery Game – Stage 4</title>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { background:#e3f2fd; font-family:"Poppins", sans-serif; }
+  .fireworks { animation: boom 0.8s ease-in-out; font-size:60px; }
+  @keyframes boom { from{transform:scale(0);} to{transform:scale(1);} }
+</style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4">
+<div id="root" class="w-full max-w-3xl"></div>
+
+<script>
+const {useState} = React;
+
+/* ------------------------------
+      NORMALISE INPUT
+------------------------------ */
+function norm(x) {
+  if (!x) return "";
+  return x.replace(/\s+/g,"")
+          .replace(/−/g,"-")
+          .replace(/×/g,"*")
+          .replace(/÷/g,"/")
+          .toLowerCase();
+}
+
+/* ------------------------------
+      CHECK ANSWER (flexible)
+------------------------------ */
+function isCorrect(input, expectedList) {
+  let n = norm(input);
+  let vals = Array.isArray(expectedList) ? expectedList : [expectedList];
+
+  for (let ans of vals) {
+    let e = norm(ans);
+
+    // Direct match
+    if (n === e) return true;
+
+    // Match numbers
+    if (!isNaN(parseFloat(n)) && !isNaN(parseFloat(e))) {
+      if (Math.abs(parseFloat(n) - parseFloat(e)) < 1e-9) return true;
+    }
+
+    // Fraction match
+    if (n.includes('/') || e.includes('/')) {
+      try {
+        let fn = eval(n);
+        let fe = eval(e);
+        if (Math.abs(fn - fe) < 1e-9) return true;
+      } catch {}
+    }
+  }
+  return false;
+}
+
+/* ------------------------------
+      QUESTIONS
+------------------------------ */
+const bank = {
+  Conversions: [
+    { q:"Convert 5 m to cm", ans:["500","500cm"], hint:"1 m = 100 cm" },
+    { q:"Convert 320 cm to m", ans:["3.2","3.2m"], hint:"Divide by 100" },
+    { q:"Convert 8 km to m", ans:["8000","8000m"], hint:"1 km = 1000 m" },
+    { q:"Convert 4500 mm to m", ans:["4.5","4.5m"], hint:"1000 mm = 1 m" },
+    { q:"Convert 2.6 m to mm", ans:["2600","2600mm"], hint:"Multiply by 1000" }
+  ],
+
+  Perimeter: [
+    { q:"Find the perimeter: square, side = 9 cm", ans:["36","36cm"], hint:"4 × side" },
+    { q:"Rectangle 7 cm × 4 cm. Perimeter?", ans:["22","22cm"], hint:"2(l+w)" },
+    { q:"Triangle: sides 6 cm, 8 cm, 10 cm", ans:["24","24cm"], hint:"Add all 3 sides" },
+    { q:"Regular hexagon side = 5 cm", ans:["30","30cm"], hint:"6 × side" }
+  ],
+
+  Composite: [
+    { q:"Find the perimeter: L-shape with sides 4,3,2,3,2,3 (cm)", ans:["17","17cm"], hint:"Add each outer edge" },
+    { q:"Room: 6 m × 4 m with 1 m indent. Outer perimeter?", ans:["22","22m"], hint:"Add each wall section" },
+    { q:"Walkway: 10 m, down 2 m, back 10 m, up 2 m", ans:["24","24m"], hint:"Total distance around" }
+  ],
+
+  WordProblems: [
+    { q:"A rope is 3.5 m long. Cut 120 cm off. Remaining length?", ans:["2.3","2.3m","230cm","2.30m"], hint:"Convert 120 cm → 1.2 m" },
+    { q:"A garden bed 4 m by 3 m needs a fence around it. Fence length?", ans:["14","14m"], hint:"Perimeter = 2(4+3)" },
+    { q:"You walk 800 m to school and 800 m home. Total distance in km?", ans:["1.6","1.6km"], hint:"Convert m → km" },
+    { q:"A plank is 2500 mm. How long in metres?", ans:["2.5","2.5m"], hint:"Divide by 1000" }
+  ]
+};
+
+/* ------------------------------
+      TOOLBAR
+------------------------------ */
+const keys = ["0","1","2","3","4","5","6","7","8","9",".","/","cm","m","mm","km","-","(" ,")"];
+
+/* ------------------------------
+      FIREWORKS
+------------------------------ */
+function Fire({show}) {
+  return show ? React.createElement("div",{className:"fireworks absolute inset-0 flex justify-center mt-10"},"🎉") : null;
+}
+
+/* ------------------------------
+      MAIN GAME
+------------------------------ */
+function Game() {
+  const tabs = Object.keys(bank);
+  const [tab,setTab] = useState(tabs[0]);
+  const [i,setI] = useState(0);
+  const [inp,setInp] = useState("");
+  const [fb,setFb] = useState("");
+  const [hint,setHint] = useState(false);
+  const [boom,setBoom] = useState(false);
+  const [score,setScore] = useState(0);
+
+  const qList = bank[tab];
+  const item = qList[i];
+
+  function check() {
+    if (isCorrect(inp, item.ans)) {
+      setFb("✔ Correct!");
+      setBoom(true);
+      setScore(s=>s+1);
+      setTimeout(()=>setBoom(false),800);
+
+      setTimeout(()=>{
+        setI(n=>(n+1)%qList.length);
+        setInp("");
+        setFb("");
+        setHint(false);
+      },900);
+    } else {
+      setFb("✖ Incorrect — try again");
+      setHint(true);
+    }
+  }
+
+  return React.createElement("div",{className:"relative p-6 bg-white rounded-xl shadow-xl w-full"},
+
+    React.createElement(Fire,{show:boom}),
+
+    React.createElement("h1",{className:"text-3xl font-bold text-blue-700 text-center mb-4"},"📏 Length Mastery Game"),
+
+    React.createElement("div",{className:"flex gap-2 justify-center mb-6"},
+      tabs.map(t=>React.createElement("button",{
+        key:t,
+        onClick:()=>{ setTab(t); setI(0); setInp(""); setFb(""); setHint(false); },
+        className:`px-4 py-1 rounded ${t===tab?"bg-blue-700 text-white":"bg-blue-400 text-white"}`
+      },t))
+    ),
+
+    React.createElement("div",{className:"text-xl mb-4 text-center font-semibold"}, item.q),
+
+    React.createElement("input",{
+      value:inp,
+      placeholder:"Enter answer",
+      className:"border w-full p-2 mb-4 rounded",
+      onChange:e=>setInp(e.target.value),
+      onKeyDown:e=>{ if(e.key==="Enter") check(); }
+    }),
+
+    React.createElement("div",{className:"flex flex-wrap gap-2 justify-center mb-5"},
+      keys.map(k=>React.createElement("button",{
+        key:k,
+        className:"px-2 py-1 bg-gray-200 rounded",
+        onClick:()=>setInp(v=>v+k)
+      },k))
+    ),
+
+    React.createElement("div",{className:"flex justify-center gap-3 mb-3"},
+      React.createElement("button",{onClick:check,className:"bg-green-600 text-white px-4 py-1 rounded"},"Check"),
+      React.createElement("button",{onClick:()=>setHint(h=>!h),className:"bg-yellow-500 text-white px-4 py-1 rounded"},"Hint")
+    ),
+
+    hint && React.createElement("div",{className:"bg-yellow-100 p-2 rounded text-center mb-2"}, item.hint),
+
+    fb && React.createElement("div",{className:`text-center p-2 rounded ${fb.includes("Correct")?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`},fb),
+
+    React.createElement("div",{className:"text-center mt-4 font-semibold text-lg"},"Score: " + score)
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Game));
+</script>
+</body>
+</html>
