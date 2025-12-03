@@ -2,269 +2,246 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Length Mastery Game – Stage 4</title>
+<title>Length Mastery Game – Stage 4 (Fixed)</title>
 
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<!-- React / ReactDOM UMD -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<!-- Babel (for in-browser JSX compilation) -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Tailwind (optional styling) -->
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-  body { background:#e3f2fd; font-family:"Poppins", sans-serif; }
-  .fireworks { animation: boom 0.8s ease-in-out; font-size:60px; }
+  body { background:#e3f2fd; font-family:"Poppins",sans-serif; }
+  .fireworks { animation: boom 0.8s ease-in-out; font-size:60px; pointer-events: none; }
   @keyframes boom { from{transform:scale(0);} to{transform:scale(1);} }
 </style>
 </head>
 
 <body class="min-h-screen flex items-center justify-center p-4">
-<div id="root" class="w-full max-w-3xl"></div>
+  <div id="root" class="w-full max-w-3xl"></div>
 
-<script>
-const {useState} = React;
+  <!-- Use Babel so the JSX in this script is compiled in-browser -->
+  <script type="text/babel">
+  const { useState } = React;
 
-/* ------------------------------
-      NORMALISE INPUT
------------------------------- */
-function norm(x) {
-  if (!x) return "";
-  return x.replace(/\s+/g,"")
-          .replace(/−/g,"-")
-          .replace(/×/g,"*")
-          .replace(/÷/g,"/")
-          .toLowerCase();
-}
-
-/* ------------------------------
-      CHECK ANSWER (flexible)
------------------------------- */
-function isCorrect(input, expectedList) {
-  let n = norm(input);
-  let vals = Array.isArray(expectedList) ? expectedList : [expectedList];
-
-  for (let ans of vals) {
-    let e = norm(ans);
-
-    if (n === e) return true;
-
-    if (!isNaN(parseFloat(n)) && !isNaN(parseFloat(e))) {
-      if (Math.abs(parseFloat(n) - parseFloat(e)) < 1e-9) return true;
-    }
-
-    if (n.includes('/') || e.includes('/')) {
-      try {
-        let fn = eval(n);
-        let fe = eval(e);
-        if (Math.abs(fn - fe) < 1e-9) return true;
-      } catch {}
-    }
-  }
-  return false;
-}
-
-/* ------------------------------
-      QUESTION BANK
------------------------------- */
-const bank = {
-  Conversions: [
-    {q:"Convert 5 m to cm", ans:["500","500cm"], hint:"1 m = 100 cm"},
-    {q:"Convert 320 cm to m", ans:["3.2","3.2m"], hint:"Divide by 100"},
-    {q:"Convert 8 km to m", ans:["8000","8000m"], hint:"1 km = 1000 m"},
-    {q:"Convert 4500 mm to m", ans:["4.5","4.5m"], hint:"1000 mm = 1 m"},
-    {q:"Convert 2.6 m to mm", ans:["2600","2600mm"], hint:"Multiply by 1000"},
-    {q:"Convert 1200 mm to cm", ans:["120","120cm"], hint:"10 mm = 1 cm"},
-    {q:"Convert 0.75 m to cm", ans:["75","75cm"], hint:"Multiply by 100"},
-    {q:"Convert 3.2 km to m", ans:["3200","3200m"], hint:"× 1000"},
-    {q:"Convert 540 cm to mm", ans:["5400","5400mm"], hint:"× 10"},
-    {q:"Convert 18 000 mm to m", ans:["18","18m"], hint:"÷ 1000"},
-    {q:"Convert 94 cm to m", ans:["0.94","0.94m"], hint:"Divide by 100"},
-    {q:"Convert 1.2 km to cm", ans:["120000","120000cm"], hint:"km → m → cm"},
-    {q:"Convert 40 mm to m", ans:["0.04","0.04m"], hint:"÷ 1000"},
-    {q:"Convert 9050 m to km", ans:["9.05","9.05km"], hint:"÷ 1000"},
-    {q:"Convert 7.5 m to cm", ans:["750","750cm"], hint:"× 100"}
-  ],
-
-  Perimeter: [
-    {q:"Square side = 9 cm. Perimeter?", ans:["36","36cm"], hint:"4 × side"},
-    {q:"Rectangle 7 cm × 4 cm. Perimeter?", ans:["22","22cm"], hint:"2(l+w)"},
-    {q:"Triangle sides: 6 cm, 8 cm, 10 cm", ans:["24","24cm"], hint:"Add all 3 sides"},
-    {q:"Regular hexagon side 5 cm", ans:["30","30cm"], hint:"6 × side"},
-    {q:"Pentagon side 7 cm", ans:["35","35cm"], hint:"5 × side"},
-    {q:"Equilateral triangle side 12 cm", ans:["36","36cm"], hint:"3 × side"},
-    {q:"Rectangle 12 m × 3 m", ans:["30","30m"], hint:"2l + 2w"},
-    {q:"Square side 14 m", ans:["56","56m"], hint:"4 × side"},
-    {q:"Octagon side = 4 cm", ans:["32","32cm"], hint:"8 × side"},
-    {q:"Rectangle 15 cm × 9 cm", ans:["48","48cm"], hint:"2(l+w)"},
-    {q:"Triangle sides: 5, 5, 7 cm", ans:["17","17cm"], hint:"Add sides"},
-    {q:"Regular hexagon side 12 m", ans:["72","72m"], hint:"6 × side"},
-    {q:"Rectangle 5.5 m × 3 m", ans:["17","17m"], hint:"2(5.5 + 3)"},
-    {q:"Square side 3.2 cm", ans:["12.8","12.8cm"], hint:"4 × side"},
-    {q:"Triangle sides: 2.5, 3.1, 4.4 m", ans:["10","10m"], hint:"Add sides"}
-  ],
-
-  Composite: [
-    {q:"L-shape sides 4,3,2,3,2,3 (cm)", ans:["17","17cm"], hint:"Add outer edges"},
-    {q:"Room: 6 m × 4 m with 1 m indent", ans:["22","22m"], hint:"Trace outer shape"},
-    {q:"Walkway: 10 m down 2 m back 10 m up 2 m", ans:["24","24m"], hint:"Add path"},
-    {q:"U-shape edges: 6,3,2,3,6,3 (m)", ans:["23","23m"], hint:"Add all edges"},
-    {q:"Garden bed outline: 8,2,4,2,8,2 (m)", ans:["26","26m"], hint:"Composite rectangle"},
-    {q:"Stepped shape: 5,2,3,2,5,2 (cm)", ans:["19","19cm"], hint:"Add outside"},
-    {q:"Room shape: 4,4,2,2,2,4,2,4 (m)", ans:["24","24m"], hint:"Many edges"},
-    {q:"Rectangular outdoor path: 20,3,20,3 (m)", ans:["46","46m"], hint:"Perimeter"},
-    {q:"Large L: 10,4,6,4,6,4 (m)", ans:["34","34m"], hint:"Trace edges"},
-    {q:"Corridor loop: 12,2,12,2 (m)", ans:["28","28m"], hint:"Perimeter"},
-    {q:"Warehouse outline edges: 15,5,10,5,5,5 (m)", ans:["45","45m"], hint:"Add"},
-    {q:"Irregular shape: 7,3,4,3,7,3 (cm)", ans:["27","27cm"], hint:"Add all"}
-  ],
-
-  WordProblems: [
-    {q:"A rope is 3.5 m. Cut 120 cm off. Remaining?", ans:["2.3","2.3m","230cm"], hint:"120 cm = 1.2 m"},
-    {q:"Garden bed 4 m × 3 m. Fence length?", ans:["14","14m"], hint:"Perimeter 2(l+w)"},
-    {q:"Walk 800 m to school + home. Distance km?", ans:["1.6","1.6km"], hint:"Convert to km"},
-    {q:"A plank is 2500 mm. Length in m?", ans:["2.5","2.5m"], hint:"÷ 1000"},
-    {q:"A hallway is 12 m long. You walk it twice. Distance?", ans:["24","24m"], hint:"× 2"},
-    {q:"A race track is 400 m. 3 laps = ?", ans:["1200","1.2km","1200m"], hint:"3 × 400"},
-    {q:"Ribbon 2.4 m. Use 75 cm. Left?", ans:["1.65","1.65m","165cm"], hint:"Convert 75 cm"},
-    {q:"Pool length 25 m. 20 laps = ?", ans:["500","500m","0.5km"], hint:"× laps"},
-    {q:"A stick is 3.2 m. Cut into 80 cm + 1 m pieces. Leftover?", ans:["1.4","1.4m"], hint:"Convert both pieces"},
-    {q:"Perimeter of 9 m × 2 m dog pen?", ans:["22","22m"], hint:"2(l+w)"},
-    {q:"Two fences: 6.5 m + 8.2 m. Total length?", ans:["14.7","14.7m"], hint:"Add lengths"},
-    {q:"A trip: 900 m + 500 m. Distance km?", ans:["1.4","1.4km"], hint:"Convert to km"}
-  ]
-};
-
-/* ------------------------------
-      TOOLBAR
------------------------------- */
-const keys = ["0","1","2","3","4","5","6","7","8","9",".","/","cm","m","mm","km","-","(",")"];
-
-/* ------------------------------
-      FIREWORKS
------------------------------- */
-function Fire({show}) {
-  return show ? <div class="fireworks absolute inset-0 flex justify-center mt-10">🎉</div> : null;
-}
-
-/* ------------------------------
-      MAIN GAME
------------------------------- */
-function Game() {
-  const tabs = [...Object.keys(bank), "Restart"];
-
-  const [tab,setTab] = useState("Conversions");
-  const [i,setI] = useState(0);
-  const [inp,setInp] = useState("");
-  const [fb,setFb] = useState("");
-  const [hint,setHint] = useState(false);
-  const [boom,setBoom] = useState(false);
-  const [score,setScore] = useState(0);
-
-  function restartGame() {
-    setTab("Conversions");
-    setI(0);
-    setInp("");
-    setFb("");
-    setHint(false);
-    setScore(0);
+  /* ------------------------------
+        NORMALISE INPUT
+  ------------------------------ */
+  function norm(x) {
+    if (!x) return "";
+    return x.toString()
+            .replace(/\s+/g,"")
+            .replace(/−/g,"-")
+            .replace(/×/g,"*")
+            .replace(/÷/g,"/")
+            .toLowerCase();
   }
 
-  if (tab === "Restart") {
+  /* ------------------------------
+        CHECK ANSWER (flexible)
+  ------------------------------ */
+  function isCorrect(input, expectedList) {
+    const n = norm(input);
+    const vals = Array.isArray(expectedList) ? expectedList : [expectedList];
+
+    for (let ans of vals) {
+      const e = norm(ans);
+
+      // exact match
+      if (n === e) return true;
+
+      // numeric equivalence
+      const nNum = parseFloat(n);
+      const eNum = parseFloat(e);
+      if (!isNaN(nNum) && !isNaN(eNum) && Math.abs(nNum - eNum) < 1e-9) return true;
+
+      // fraction or expression equivalence (evaluate safely)
+      if (n.includes('/') || e.includes('/')) {
+        try {
+          const fn = Function('"use strict"; return (' + n + ')')();
+          const fe = Function('"use strict"; return (' + e + ')')();
+          if (!isNaN(fn) && !isNaN(fe) && Math.abs(fn - fe) < 1e-9) return true;
+        } catch (err) { /* ignore eval errors */ }
+      }
+    }
+
+    return false;
+  }
+
+  /* ------------------------------
+        QUESTION BANK
+  ------------------------------ */
+  const bank = {
+    Conversions: [
+      {q:"Convert 5 m to cm", ans:["500","500cm"], hint:"1 m = 100 cm"},
+      {q:"Convert 320 cm to m", ans:["3.2","3.2m"], hint:"Divide by 100"},
+      {q:"Convert 8 km to m", ans:["8000","8000m"], hint:"1 km = 1000 m"},
+      {q:"Convert 4500 mm to m", ans:["4.5","4.5m"], hint:"1000 mm = 1 m"},
+      {q:"Convert 2.6 m to mm", ans:["2600","2600mm"], hint:"Multiply by 1000"},
+      {q:"Convert 1200 mm to cm", ans:["120","120cm"], hint:"10 mm = 1 cm"},
+      {q:"Convert 0.75 m to cm", ans:["75","75cm"], hint:"Multiply by 100"},
+    ],
+
+    Perimeter: [
+      {q:"Square side = 9 cm. Perimeter?", ans:["36","36cm"], hint:"4 × side"},
+      {q:"Rectangle 7 cm × 4 cm. Perimeter?", ans:["22","22cm"], hint:"2(l+w)"},
+      {q:"Triangle sides: 6 cm, 8 cm, 10 cm", ans:["24","24cm"], hint:"Add all"},
+    ],
+
+    Composite: [
+      {q:"L-shape sides 4,3,2,3,2,3 (cm)", ans:["17","17cm"], hint:"Add outside edges"},
+      {q:"U-shape edges: 6,3,2,3,6,3 (m)", ans:["23","23m"], hint:"Trace outline"},
+    ],
+
+    WordProblems: [
+      {q:"A rope is 3.5 m. Cut 120 cm off. Remaining?", ans:["2.3","2.3m","230cm"], hint:"120cm = 1.2m"},
+      {q:"Walk 800 m to school + return. km?", ans:["1.6","1.6km"], hint:"Convert m→km"},
+    ]
+  };
+
+  /* ------------------------------
+        TOOLBAR KEYS
+  ------------------------------ */
+  const keys = ["0","1","2","3","4","5","6","7","8","9",".","/","cm","m","mm","km","-","(",")"];
+
+  /* ------------------------------
+        FIREWORKS
+  ------------------------------ */
+  function Fire({show}) {
+    if (!show) return null;
+    return <div className="fireworks absolute inset-0 flex justify-center mt-10">🎉</div>;
+  }
+
+  /* ------------------------------
+        MAIN GAME
+  ------------------------------ */
+  function Game() {
+    const tabs = [...Object.keys(bank), "Restart"];
+
+    const [tab, setTab] = useState("Conversions");
+    const [i, setI] = useState(0);
+    const [inp, setInp] = useState("");
+    const [fb, setFb] = useState("");
+    const [hint, setHint] = useState(false);
+    const [boom, setBoom] = useState(false);
+    const [score, setScore] = useState(0);
+
+    function restartGame() {
+      setTab("Conversions");
+      setI(0);
+      setInp("");
+      setFb("");
+      setHint(false);
+      setScore(0);
+    }
+
+    if (tab === "Restart") {
+      return (
+        <div className="p-8 bg-white rounded-xl shadow-xl text-center">
+          <h2 className="text-2xl font-bold mb-4">🔄 Restart Game</h2>
+          <button
+            className="bg-red-500 text-white px-6 py-2 rounded text-xl"
+            onClick={restartGame}
+          >
+            Restart Now
+          </button>
+        </div>
+      );
+    }
+
+    const qList = bank[tab];
+    const item = qList[i];
+
+    function check() {
+      if (!item) return;
+      if (isCorrect(inp, item.ans)) {
+        setFb("✔ Correct!");
+        setBoom(true);
+        setScore(s => s + 1);
+
+        setTimeout(() => setBoom(false), 800);
+
+        setTimeout(() => {
+          setI(n => (n + 1) % qList.length);
+          setInp("");
+          setFb("");
+          setHint(false);
+        }, 900);
+      } else {
+        setFb("✖ Incorrect — try again");
+        setHint(true);
+      }
+    }
+
     return (
-      <div class="p-8 bg-white rounded-xl shadow-xl text-center">
-        <h2 class="text-2xl font-bold mb-4">🔄 Restart Game</h2>
-        <button class="bg-red-500 text-white px-6 py-2 rounded text-xl" onClick={restartGame}>
-          Restart Now
-        </button>
+      <div className="relative p-6 bg-white rounded-xl shadow-xl w-full">
+        <Fire show={boom} />
+
+        <h1 className="text-3xl font-bold text-blue-700 text-center mb-4">📏 Length Mastery Game</h1>
+
+        <div className="flex gap-2 justify-center mb-6">
+          {tabs.map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={
+                "px-4 py-1 rounded " +
+                (t === tab ? "bg-blue-700 text-white" :
+                 t === "Restart" ? "bg-red-500 text-white" :
+                 "bg-blue-400 text-white")
+              }
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {item ? (
+          <>
+            <div className="text-xl mb-4 text-center font-semibold">{item.q}</div>
+
+            <input
+              value={inp}
+              placeholder="Enter answer"
+              className="border w-full p-2 mb-4 rounded"
+              onChange={e => setInp(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") check(); }}
+            />
+
+            <div className="flex flex-wrap gap-2 justify-center mb-5">
+              {keys.map(k => (
+                <button key={k} className="px-2 py-1 bg-gray-200 rounded" onClick={() => setInp(v => v + k)}>{k}</button>
+              ))}
+            </div>
+
+            <div className="flex justify-center gap-3 mb-3">
+              <button onClick={check} className="bg-green-600 text-white px-4 py-1 rounded">Check</button>
+              <button onClick={() => setHint(h => !h)} className="bg-yellow-500 text-white px-4 py-1 rounded">Hint</button>
+            </div>
+
+            {hint && <div className="bg-yellow-100 p-2 rounded text-center mb-2">{item.hint}</div>}
+            {fb && (
+              <div className={"text-center p-2 rounded " + (fb.includes("Correct") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+                {fb}
+              </div>
+            )}
+            <div className="text-center mt-4 font-semibold text-lg">Score: {score}</div>
+          </>
+        ) : (
+          <div className="text-center">No questions found for this tab.</div>
+        )}
       </div>
     );
   }
 
-  const qList = bank[tab];
-  const item = qList[i];
-
-  function check() {
-    if (isCorrect(inp, item.ans)) {
-      setFb("✔ Correct!");
-      setBoom(true);
-      setScore(s=>s+1);
-
-      setTimeout(()=>setBoom(false),800);
-
-      setTimeout(()=>{
-        setI(n=>(n+1)%qList.length);
-        setInp("");
-        setFb("");
-        setHint(false);
-      },900);
-
-    } else {
-      setFb("✖ Incorrect — try again");
-      setHint(true);
-    }
-  }
-
-  return (
-    <div class="relative p-6 bg-white rounded-xl shadow-xl w-full">
-
-      <Fire show={boom} />
-
-      <h1 class="text-3xl font-bold text-blue-700 text-center mb-4">📏 Length Mastery Game</h1>
-
-      <div class="flex gap-2 justify-center mb-6">
-        {tabs.map(t =>
-          <button
-            key={t}
-            onClick={()=>setTab(t)}
-            class={`px-4 py-1 rounded 
-              ${t===tab ? "bg-blue-700 text-white" :
-               t==="Restart" ? "bg-red-500 text-white" :
-               "bg-blue-400 text-white"}`}>
-            {t}
-          </button>
-        )}
-      </div>
-
-      <div class="text-xl mb-4 text-center font-semibold">{item.q}</div>
-
-      <input
-        value={inp}
-        placeholder="Enter answer"
-        class="border w-full p-2 mb-4 rounded"
-        onChange={e=>setInp(e.target.value)}
-        onKeyDown={e=>{ if(e.key==="Enter") check(); }}
-      />
-
-      <div class="flex flex-wrap gap-2 justify-center mb-5">
-        {keys.map(k =>
-          <button key={k} class="px-2 py-1 bg-gray-200 rounded"
-            onClick={()=>setInp(v=>v+k)}>
-            {k}
-          </button>
-        )}
-      </div>
-
-      <div class="flex justify-center gap-3 mb-3">
-        <button onClick={check} class="bg-green-600 text-white px-4 py-1 rounded">Check</button>
-        <button onClick={()=>setHint(h=>!h)} class="bg-yellow-500 text-white px-4 py-1 rounded">Hint</button>
-      </div>
-
-      {hint && <div class="bg-yellow-100 p-2 rounded text-center mb-2">{item.hint}</div>}
-
-      {fb && (
-        <div class={`text-center p-2 rounded ${
-            fb.includes("Correct") ? "bg-green-100 text-green-700" :
-            "bg-red-100 text-red-700"
-        }`}>
-          {fb}
-        </div>
-      )}
-
-      <div class="text-center mt-4 font-semibold text-lg">Score: {score}</div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<Game />);
-</script>
+  ReactDOM.createRoot(document.getElementById("root")).render(<Game />);
+  </script>
 </body>
 </html>
+
 
 
