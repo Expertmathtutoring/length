@@ -43,15 +43,12 @@ function isCorrect(input, expectedList) {
   for (let ans of vals) {
     let e = norm(ans);
 
-    // Direct match
     if (n === e) return true;
 
-    // Match numbers
     if (!isNaN(parseFloat(n)) && !isNaN(parseFloat(e))) {
       if (Math.abs(parseFloat(n) - parseFloat(e)) < 1e-9) return true;
     }
 
-    // Fraction match
     if (n.includes('/') || e.includes('/')) {
       try {
         let fn = eval(n);
@@ -64,7 +61,7 @@ function isCorrect(input, expectedList) {
 }
 
 /* ------------------------------
-      QUESTIONS
+      QUESTION BANK
 ------------------------------ */
 const bank = {
   Conversions: [
@@ -89,7 +86,7 @@ const bank = {
   ],
 
   WordProblems: [
-    { q:"A rope is 3.5 m long. Cut 120 cm off. Remaining length?", ans:["2.3","2.3m","230cm","2.30m"], hint:"Convert 120 cm → 1.2 m" },
+    { q:"A rope is 3.5 m long. Cut 120 cm off. Remaining length?", ans:["2.3","2.3m","230cm"], hint:"Convert 120 cm → 1.2 m" },
     { q:"A garden bed 4 m by 3 m needs a fence around it. Fence length?", ans:["14","14m"], hint:"Perimeter = 2(4+3)" },
     { q:"You walk 800 m to school and 800 m home. Total distance in km?", ans:["1.6","1.6km"], hint:"Convert m → km" },
     { q:"A plank is 2500 mm. How long in metres?", ans:["2.5","2.5m"], hint:"Divide by 1000" }
@@ -99,7 +96,7 @@ const bank = {
 /* ------------------------------
       TOOLBAR
 ------------------------------ */
-const keys = ["0","1","2","3","4","5","6","7","8","9",".","/","cm","m","mm","km","-","(" ,")"];
+const keys = ["0","1","2","3","4","5","6","7","8","9",".","/","cm","m","mm","km","-","(",")"];
 
 /* ------------------------------
       FIREWORKS
@@ -112,14 +109,38 @@ function Fire({show}) {
       MAIN GAME
 ------------------------------ */
 function Game() {
-  const tabs = Object.keys(bank);
-  const [tab,setTab] = useState(tabs[0]);
+  const tabs = [...Object.keys(bank), "Restart"];
+
+  const [tab,setTab] = useState("Conversions");
   const [i,setI] = useState(0);
   const [inp,setInp] = useState("");
   const [fb,setFb] = useState("");
   const [hint,setHint] = useState(false);
   const [boom,setBoom] = useState(false);
   const [score,setScore] = useState(0);
+
+  /* Restart function */
+  function restartGame() {
+    setTab("Conversions");
+    setI(0);
+    setInp("");
+    setFb("");
+    setHint(false);
+    setScore(0);
+  }
+
+  /* If restart tab selected, show restart button */
+  if (tab === "Restart") {
+    return (
+      React.createElement("div",{className:"p-8 bg-white rounded-xl shadow-xl text-center"},
+        React.createElement("h2",{className:"text-2xl font-bold mb-4"},"🔄 Restart Game"),
+        React.createElement("button",{
+          className:"bg-red-500 text-white px-6 py-2 rounded text-xl",
+          onClick:restartGame
+        },"Restart Now")
+      )
+    );
+  }
 
   const qList = bank[tab];
   const item = qList[i];
@@ -152,8 +173,9 @@ function Game() {
     React.createElement("div",{className:"flex gap-2 justify-center mb-6"},
       tabs.map(t=>React.createElement("button",{
         key:t,
-        onClick:()=>{ setTab(t); setI(0); setInp(""); setFb(""); setHint(false); },
-        className:`px-4 py-1 rounded ${t===tab?"bg-blue-700 text-white":"bg-blue-400 text-white"}`
+        onClick:()=>setTab(t),
+        className:`px-4 py-1 rounded 
+          ${t===tab ? "bg-blue-700 text-white" : t==="Restart" ? "bg-red-500 text-white" : "bg-blue-400 text-white"}`
       },t))
     ),
 
@@ -192,3 +214,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(
 </script>
 </body>
 </html>
+
