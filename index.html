@@ -24,57 +24,39 @@
 <body class="min-h-screen flex items-center justify-center p-4">
   <div id="root" class="w-full max-w-3xl"></div>
 
-  <!-- Use Babel so the JSX in this script is compiled in-browser -->
   <script type="text/babel">
     const { useState } = React;
 
-    /* ------------------------------
-          NORMALISE INPUT
-    ------------------------------ */
     function norm(x) {
       if (!x) return "";
       return x.toString()
-              .replace(/\s+/g, "")
-              .replace(/−/g, "-")
-              .replace(/×/g, "*")
-              .replace(/÷/g, "/")
-              .toLowerCase();
+        .replace(/\s+/g, "")
+        .replace(/−/g, "-")
+        .replace(/×/g, "*")
+        .replace(/÷/g, "/")
+        .toLowerCase();
     }
 
-    /* ------------------------------
-          CHECK ANSWER (flexible)
-    ------------------------------ */
     function isCorrect(input, expectedList) {
       const n = norm(input);
       const vals = Array.isArray(expectedList) ? expectedList : [expectedList];
-
       for (let ans of vals) {
         const e = norm(ans);
-
-        // exact match
         if (n === e) return true;
-
-        // numeric equivalence
         const nNum = parseFloat(n);
         const eNum = parseFloat(e);
         if (!isNaN(nNum) && !isNaN(eNum) && Math.abs(nNum - eNum) < 1e-9) return true;
-
-        // fraction or expression equivalence (evaluate safely)
         if (n.includes('/') || e.includes('/')) {
           try {
             const fn = Function('"use strict"; return (' + n + ')')();
             const fe = Function('"use strict"; return (' + e + ')')();
             if (!isNaN(fn) && !isNaN(fe) && Math.abs(fn - fe) < 1e-9) return true;
-          } catch (err) { /* ignore eval errors */ }
+          } catch (err) {}
         }
       }
-
       return false;
     }
 
-    /* ------------------------------
-          QUESTION BANK
-    ------------------------------ */
     const bank = {
       Conversions: [
         { q: "Convert 5 m to cm", ans: ["500", "500cm"], hint: "1 m = 100 cm" },
@@ -85,46 +67,33 @@
         { q: "Convert 1200 mm to cm", ans: ["120", "120cm"], hint: "10 mm = 1 cm" },
         { q: "Convert 0.75 m to cm", ans: ["75", "75cm"], hint: "Multiply by 100" },
       ],
-
       Perimeter: [
         { q: "Square side = 9 cm. Perimeter?", ans: ["36", "36cm"], hint: "4 × side" },
         { q: "Rectangle 7 cm × 4 cm. Perimeter?", ans: ["22", "22cm"], hint: "2(l+w)" },
         { q: "Triangle sides: 6 cm, 8 cm, 10 cm", ans: ["24", "24cm"], hint: "Add all" },
       ],
-
       Composite: [
         { q: "L-shape sides 4,3,2,3,2,3 (cm)", ans: ["17", "17cm"], hint: "Add outside edges" },
         { q: "U-shape edges: 6,3,2,3,6,3 (m)", ans: ["23", "23m"], hint: "Trace outline" },
       ],
-
       WordProblems: [
         { q: "A rope is 3.5 m. Cut 120 cm off. Remaining?", ans: ["2.3", "2.3m", "230cm"], hint: "120cm = 1.2m" },
         { q: "Walk 800 m to school + return. km?", ans: ["1.6", "1.6km"], hint: "Convert m→km" },
       ]
     };
 
-    /* ------------------------------
-          TOOLBAR KEYS
-    ------------------------------ */
     const keys = [
       "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
       ".", "/", "cm", "m", "mm", "km", "-", "(", ")"
     ];
 
-    /* ------------------------------
-          FIREWORKS
-    ------------------------------ */
     function Fire({ show }) {
       if (!show) return null;
       return <div className="fireworks absolute inset-0 flex justify-center mt-10">🎉</div>;
     }
 
-    /* ------------------------------
-          MAIN GAME
-    ------------------------------ */
     function Game() {
       const tabs = [...Object.keys(bank), "Restart"];
-
       const [tab, setTab] = useState("Conversions");
       const [i, setI] = useState(0);
       const [inp, setInp] = useState("");
@@ -165,9 +134,7 @@
           setFb("✔ Correct!");
           setBoom(true);
           setScore(s => s + 1);
-
           setTimeout(() => setBoom(false), 800);
-
           setTimeout(() => {
             setI(n => (n + 1) % qList.length);
             setInp("");
@@ -180,7 +147,6 @@
         }
       }
 
-      // Handle units with a trailing space on click to keep input cleaner
       function addKey(k) {
         const units = ["cm", "m", "mm", "km"];
         if (units.includes(k)) {
@@ -193,9 +159,7 @@
       return (
         <div className="relative p-6 bg-white rounded-xl shadow-xl w-full" style={{ position: "relative" }}>
           <Fire show={boom} />
-
           <h1 className="text-3xl font-bold text-blue-700 text-center mb-4">📏 Length Mastery Game</h1>
-
           <div className="flex gap-2 justify-center mb-6 flex-wrap">
             {tabs.map(t => (
               <button
@@ -262,9 +226,9 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<Game />);
+    // *** FIXED: Use ReactDOM.render for Babel + UMD compatibility ***
+    ReactDOM.render(<Game />, document.getElementById("root"));
   </script>
 </body>
 </html>
-
 
