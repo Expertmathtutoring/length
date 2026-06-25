@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Length Mastery Game – Stage 4 (Fixed)</title>
+<title>Length Mastery Game – Stage 4 (Working)</title>
 
-<!-- React / ReactDOM UMD -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<!-- React 17 / ReactDOM 17 UMD -->
+<script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
 
 <!-- Babel (for in-browser JSX compilation) -->
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -20,7 +20,6 @@
   @keyframes boom { from{transform:scale(0);} to{transform:scale(1);} }
 </style>
 </head>
-
 <body class="min-h-screen flex items-center justify-center p-4">
   <div id="root" class="w-full max-w-3xl"></div>
 
@@ -226,7 +225,6 @@
       );
     }
 
-    // *** FIXED: Use ReactDOM.render for Babel + UMD compatibility ***
     ReactDOM.render(<Game />, document.getElementById("root"));
   </script>
 </body>
